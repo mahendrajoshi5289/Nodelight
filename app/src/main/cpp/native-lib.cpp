@@ -159,12 +159,12 @@ Java_com_example_androidnode_MainActivity_startNode(
      * Start Node with main.js.
      */
     const char* argv[] =
-    {
-        "node",
-        "/data/data/com.example.androidnode/files/main.js"
-    };
+{
+    "node",
+    "/data/data/com.example.androidnode/files/node-project/main.js"
+};
 
-    chdir("/data/data/com.example.androidnode/files");
+    chdir("/data/data/com.example.androidnode/files/node-project");
     int result =
         node::Start(
             2,
