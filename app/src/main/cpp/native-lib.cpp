@@ -1,198 +1,101 @@
 #include <jni.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <fcntl.h>
 #include <string>
-#include <cstring>
 
 #include "node.h"
 
-static int node_stdin_fd = -1;
-
-static JavaVM *java_vm = nullptr;
-static jobject activity_object = nullptr;
-static jmethodID append_method = nullptr;
-
-static pthread_t output_thread;
-static bool output_thread_running = false;
-
-
-// --------------------------------------------------
-// Send stdout from Node.js to Android
-// --------------------------------------------------
-
-static void *output_reader(void *) {
-
-    JNIEnv *env = nullptr;
-
-    java_vm->AttachCurrentThread(&env, nullptr);
-
-    char buffer[4096];
-
-    while (output_thread_running) {
-
-        ssize_t count = read(
-                STDOUT_FILENO,
-                buffer,
-                sizeof(buffer) - 1
-        );
-
-        if (count <= 0) {
-            break;
-        }
-
-        buffer[count] = '\0';
-
-        jstring text =
-                env->NewStringUTF(buffer);
-
-        env->CallVoidMethod(
-                activity_object,
-                append_method,
-                text
-        );
-
-        env->DeleteLocalRef(text);
-    }
-
-    java_vm->DetachCurrentThread();
-
-    return nullptr;
-}
-
-
-// --------------------------------------------------
-// Node thread
-// --------------------------------------------------
-
-static void *node_thread(void *) {
-
-    const char *argv[] = {
-            "node",
-            "-i"
-    };
-
-    int argc = 2;
-
-    node::Start(
-            argc,
-            const_cast<char **>(argv)
-    );
-
-    return nullptr;
-}
-
-
-// --------------------------------------------------
-// JNI: start Node
-// --------------------------------------------------
+static JavaVM* g_vm = nullptr;
+static jobject g_activity = nullptr;
+static jmethodID g_append = nullptr;
 
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_androidnode_MainActivity_startNode(
-        JNIEnv *env,
+        JNIEnv* env,
         jobject activity) {
 
-    if (java_vm == nullptr) {
-        env->GetJavaVM(&java_vm);
+    env->GetJavaVM(&g_vm);
+
+    if (g_activity != nullptr) {
+        env->DeleteGlobalRef(g_activity);
     }
 
-    activity_object =
-            env->NewGlobalRef(activity);
+    g_activity = env->NewGlobalRef(activity);
 
-    jclass activity_class =
-            env->GetObjectClass(activity);
+    jclass cls = env->GetObjectClass(activity);
 
-    append_method =
-            env->GetMethodID(
-                    activity_class,
-                    "appendTerminal",
-                    "(Ljava/lang/String;)V"
-            );
+    g_append = env->GetMethodID(
+            cls,
+            "appendTerminal",
+            "(Ljava/lang/String;)V"
+    );
 
-    // Create stdin pipe.
-    int stdin_pipe[2];
-
-    if (pipe(stdin_pipe) != 0) {
-        return -1;
+    if (g_append == nullptr) {
+        return -10;
     }
 
-    // Java -> Node stdin
-    node_stdin_fd = stdin_pipe[1];
+    const char* argv[] = {
+            "node",
+            "-e",
+            "console.log('Node.js started successfully');"
+            "console.log('version:', process.version);"
+            "console.log('platform:', process.platform);"
+            "console.log('arch:', process.arch);"
+    };
 
-    dup2(stdin_pipe[0], STDIN_FILENO);
+    int argc = 3;
 
-    close(stdin_pipe[0]);
-
-    // Start stdout reader.
-    output_thread_running = true;
-
-    pthread_create(
-            &output_thread,
-            nullptr,
-            output_reader,
-            nullptr
+    return node::Start(
+            argc,
+            const_cast<char**>(argv)
     );
-
-    // Start Node.
-    pthread_t nodeThread;
-
-    pthread_create(
-            &nodeThread,
-            nullptr,
-            node_thread,
-            nullptr
-    );
-
-    // Wait for Node.
-    pthread_join(nodeThread, nullptr);
-
-    output_thread_running = false;
-
-    return 0;
 }
 
-
-// --------------------------------------------------
-// JNI: send command to Node
-// --------------------------------------------------
 
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_androidnode_MainActivity_sendCommand(
-        JNIEnv *env,
-        jobject,
+        JNIEnv* env,
+        jobject activity,
         jstring command) {
 
-    if (node_stdin_fd < 0) {
-        return -2;
-    }
+    const char* cmd =
+            env->GetStringUTFChars(command, nullptr);
 
-    const char *text =
-            env->GetStringUTFChars(
-                    command,
-                    nullptr
+    jclass cls =
+            env->GetObjectClass(activity);
+
+    jmethodID append =
+            env->GetMethodID(
+                    cls,
+                    "appendTerminal",
+                    "(Ljava/lang/String;)V"
             );
 
-    std::string command_string(text);
+    if (append == nullptr) {
+        env->ReleaseStringUTFChars(command, cmd);
+        return -11;
+    }
+
+    std::string output =
+            "\n[Command received] " +
+            std::string(cmd) +
+            "\n";
+
+    jstring result =
+            env->NewStringUTF(output.c_str());
+
+    env->CallVoidMethod(
+            activity,
+            append,
+            result
+    );
+
+    env->DeleteLocalRef(result);
 
     env->ReleaseStringUTFChars(
             command,
-            text
+            cmd
     );
-
-    command_string += "\n";
-
-    ssize_t written =
-            write(
-                    node_stdin_fd,
-                    command_string.c_str(),
-                    command_string.length()
-            );
-
-    if (written < 0) {
-        return -3;
-    }
 
     return 0;
 }
