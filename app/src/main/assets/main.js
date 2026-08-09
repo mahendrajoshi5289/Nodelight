@@ -1,11 +1,37 @@
-console.log("================================");
-console.log("Node.js Mobile started!");
-console.log("================================");
+const readline = require("readline");
 
-console.log("Node version:", process.version);
-console.log("Platform:", process.platform);
+console.log("Node.js terminal started");
+console.log("Version:", process.version);
 console.log("Architecture:", process.arch);
+console.log("");
 
-setInterval(() => {
-    console.log("Node is alive:", new Date().toISOString());
-}, 5000);
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false
+});
+
+function execute(command) {
+    command = command.trim();
+
+    if (!command) {
+        process.stdout.write("> ");
+        return;
+    }
+
+    try {
+        const result = eval(command);
+
+        if (result !== undefined) {
+            console.log(result);
+        }
+    } catch (error) {
+        console.error(error.toString());
+    }
+
+    process.stdout.write("> ");
+}
+
+rl.on("line", execute);
+
+process.stdout.write("> ");
