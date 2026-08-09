@@ -1,9 +1,12 @@
-const readline = require("readline");
+const axios = require("axios");
 
-console.log("Node.js terminal started");
-console.log("Version:", process.version);
-console.log("Architecture:", process.arch);
+console.log("Android Node.js");
+console.log("Node:", process.version);
+console.log("Arch:", process.arch);
+console.log("Axios:", axios.VERSION);
 console.log("");
+
+const readline = require("readline");
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -26,7 +29,7 @@ function execute(command) {
             console.log(result);
         }
     } catch (error) {
-        console.error(error.toString());
+        console.error(error.stack || error.toString());
     }
 
     process.stdout.write("> ");
