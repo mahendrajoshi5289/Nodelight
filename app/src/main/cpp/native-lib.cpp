@@ -164,7 +164,7 @@ Java_com_example_androidnode_MainActivity_startNode(
         "/data/data/com.example.androidnode/files/main.js"
     };
 
-
+    chdir("/data/data/com.example.androidnode/files");
     int result =
         node::Start(
             2,
