@@ -3,9 +3,29 @@
 
 #include "node.h"
 
-static JavaVM* g_vm = nullptr;
-static jobject g_activity = nullptr;
-static jmethodID g_append = nullptr;
+static void append(JNIEnv* env, jobject activity, const char* text) {
+    jclass cls = env->GetObjectClass(activity);
+
+    jmethodID method = env->GetMethodID(
+        cls,
+        "appendTerminal",
+        "(Ljava/lang/String;)V"
+    );
+
+    if (method == nullptr) {
+        return;
+    }
+
+    jstring value = env->NewStringUTF(text);
+
+    env->CallVoidMethod(
+        activity,
+        method,
+        value
+    );
+
+    env->DeleteLocalRef(value);
+}
 
 extern "C"
 JNIEXPORT jint JNICALL
@@ -13,41 +33,30 @@ Java_com_example_androidnode_MainActivity_startNode(
         JNIEnv* env,
         jobject activity) {
 
-    env->GetJavaVM(&g_vm);
-
-    if (g_activity != nullptr) {
-        env->DeleteGlobalRef(g_activity);
-    }
-
-    g_activity = env->NewGlobalRef(activity);
-
-    jclass cls = env->GetObjectClass(activity);
-
-    g_append = env->GetMethodID(
-            cls,
-            "appendTerminal",
-            "(Ljava/lang/String;)V"
-    );
-
-    if (g_append == nullptr) {
-        return -10;
-    }
+    append(env, activity, "\nJNI: startNode() called\n");
 
     const char* argv[] = {
-            "node",
-            "-e",
-            "console.log('Node.js started successfully');"
-            "console.log('version:', process.version);"
-            "console.log('platform:', process.platform);"
-            "console.log('arch:', process.arch);"
+        "node",
+        "-e",
+        "console.log('HELLO_FROM_NODE');"
     };
 
-    int argc = 3;
+    append(env, activity, "JNI: calling node::Start()\n");
 
-    return node::Start(
-            argc,
-            const_cast<char**>(argv)
+    int result = node::Start(
+        3,
+        const_cast<char**>(argv)
     );
+
+    append(env, activity, "\nJNI: node::Start() returned\n");
+
+    if (result == 0) {
+        append(env, activity, "JNI: return code = 0\n");
+    } else {
+        append(env, activity, "JNI: Node returned an error\n");
+    }
+
+    return result;
 }
 
 
@@ -59,42 +68,18 @@ Java_com_example_androidnode_MainActivity_sendCommand(
         jstring command) {
 
     const char* cmd =
-            env->GetStringUTFChars(command, nullptr);
+        env->GetStringUTFChars(command, nullptr);
 
-    jclass cls =
-            env->GetObjectClass(activity);
+    std::string message =
+        "\n[Command received] " +
+        std::string(cmd) +
+        "\n";
 
-    jmethodID append =
-            env->GetMethodID(
-                    cls,
-                    "appendTerminal",
-                    "(Ljava/lang/String;)V"
-            );
-
-    if (append == nullptr) {
-        env->ReleaseStringUTFChars(command, cmd);
-        return -11;
-    }
-
-    std::string output =
-            "\n[Command received] " +
-            std::string(cmd) +
-            "\n";
-
-    jstring result =
-            env->NewStringUTF(output.c_str());
-
-    env->CallVoidMethod(
-            activity,
-            append,
-            result
-    );
-
-    env->DeleteLocalRef(result);
+    append(env, activity, message.c_str());
 
     env->ReleaseStringUTFChars(
-            command,
-            cmd
+        command,
+        cmd
     );
 
     return 0;
