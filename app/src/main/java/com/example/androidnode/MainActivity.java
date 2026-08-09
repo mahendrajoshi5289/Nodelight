@@ -33,24 +33,77 @@ public class MainActivity extends Activity {
     private native int startNode();
     private native int sendCommand(String command);
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
-        createTerminalUI();
+private void copyNodeScript() throws Exception {
 
-        if (!nodeStarted) {
-            nodeStarted = true;
+    File target =
+        new File(
+            getFilesDir(),
+            "main.js"
+        );
 
-            new Thread(() -> {
-                int result = startNode();
+    InputStream input =
+        getAssets().open("main.js");
 
-                appendTerminal(
-                        "\nNode exited with code: " + result + "\n"
-                );
-            }).start();
-        }
+    FileOutputStream output =
+        new FileOutputStream(target);
+
+    byte[] buffer = new byte[8192];
+
+    int length;
+
+    while ((length = input.read(buffer)) != -1) {
+
+        output.write(
+            buffer,
+            0,
+            length
+        );
     }
+
+    input.close();
+    output.close();
+
+    target.setReadable(true, false);
+}
+
+
+    
+    @Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    createTerminalUI();
+
+    try {
+        copyNodeScript();
+    } catch (Exception e) {
+        appendTerminal(
+            "\nFailed to copy main.js:\n" +
+            e.toString() +
+            "\n"
+        );
+
+        return;
+    }
+
+    if (!nodeStarted) {
+
+        nodeStarted = true;
+
+        new Thread(() -> {
+
+            int result = startNode();
+
+            appendTerminal(
+                "\nNode exited with code: " +
+                result +
+                "\n"
+            );
+
+        }).start();
+    }
+}
 
     private void createTerminalUI() {
 
