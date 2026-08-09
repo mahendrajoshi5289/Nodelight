@@ -1,86 +1,182 @@
 #include <jni.h>
-#include <string>
+#include <unistd.h>
+#include <pthread.h>
+#include <string.h>
 
 #include "node.h"
 
-static void append(JNIEnv* env, jobject activity, const char* text) {
-    jclass cls = env->GetObjectClass(activity);
+static JavaVM* g_vm = nullptr;
+static jobject g_activity = nullptr;
+static jmethodID g_append = nullptr;
 
-    jmethodID method = env->GetMethodID(
-        cls,
-        "appendTerminal",
-        "(Ljava/lang/String;)V"
-    );
+static int stdout_pipe[2];
 
-    if (method == nullptr) {
-        return;
-    }
 
+static void appendText(JNIEnv* env, const char* text)
+{
     jstring value = env->NewStringUTF(text);
 
     env->CallVoidMethod(
-        activity,
-        method,
+        g_activity,
+        g_append,
         value
     );
 
     env->DeleteLocalRef(value);
 }
 
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_example_androidnode_MainActivity_startNode(
-        JNIEnv* env,
-        jobject activity) {
 
-    append(env, activity, "\nJNI: startNode() called\n");
+static void* readNodeOutput(void*)
+{
+    JNIEnv* env = nullptr;
 
-    const char* argv[] = {
-        "node",
-        "-e",
-        "console.log('HELLO_FROM_NODE');"
-    };
-
-    append(env, activity, "JNI: calling node::Start()\n");
-
-    int result = node::Start(
-        3,
-        const_cast<char**>(argv)
+    g_vm->AttachCurrentThread(
+        &env,
+        nullptr
     );
 
-    append(env, activity, "\nJNI: node::Start() returned\n");
+    char buffer[1024];
 
-    if (result == 0) {
-        append(env, activity, "JNI: return code = 0\n");
-    } else {
-        append(env, activity, "JNI: Node returned an error\n");
+    while (true)
+    {
+        int count = read(
+            stdout_pipe[0],
+            buffer,
+            sizeof(buffer) - 1
+        );
+
+        if (count <= 0)
+            break;
+
+        buffer[count] = '\0';
+
+        appendText(
+            env,
+            buffer
+        );
     }
 
-    return result;
+    g_vm->DetachCurrentThread();
+
+    return nullptr;
 }
 
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_androidnode_MainActivity_sendCommand(
-        JNIEnv* env,
-        jobject activity,
-        jstring command) {
+Java_com_example_androidnode_MainActivity_startNode(
+    JNIEnv* env,
+    jobject activity)
+{
+    env->GetJavaVM(&g_vm);
 
-    const char* cmd =
-        env->GetStringUTFChars(command, nullptr);
+    g_activity =
+        env->NewGlobalRef(activity);
 
-    std::string message =
-        "\n[Command received] " +
-        std::string(cmd) +
-        "\n";
+    jclass cls =
+        env->GetObjectClass(activity);
 
-    append(env, activity, message.c_str());
+    g_append =
+        env->GetMethodID(
+            cls,
+            "appendTerminal",
+            "(Ljava/lang/String;)V"
+        );
 
-    env->ReleaseStringUTFChars(
-        command,
-        cmd
+    appendText(
+        env,
+        "JNI: redirecting stdout...\n"
     );
 
-    return 0;
+    /*
+     * Create pipe:
+     *
+     * stdout_pipe[1] = Node writes here
+     * stdout_pipe[0] = Android reads here
+     */
+    if (pipe(stdout_pipe) != 0)
+    {
+        appendText(
+            env,
+            "ERROR: pipe() failed\n"
+        );
+
+        return -1;
+    }
+
+    /*
+     * Redirect stdout.
+     */
+    dup2(
+        stdout_pipe[1],
+        STDOUT_FILENO
+    );
+
+    /*
+     * Redirect stderr too.
+     */
+    dup2(
+        stdout_pipe[1],
+        STDERR_FILENO
+    );
+
+    /*
+     * Start Android reader.
+     */
+    pthread_t thread;
+
+    pthread_create(
+        &thread,
+        nullptr,
+        readNodeOutput,
+        nullptr
+    );
+
+
+    appendText(
+        env,
+        "JNI: starting Node...\n"
+    );
+
+
+    /*
+     * Node executes this JavaScript.
+     */
+    const char* argv[] =
+    {
+        "node",
+        "-e",
+        "console.log('HELLO_FROM_NODE');"
+        "console.log('version:', process.version);"
+        "console.log('platform:', process.platform);"
+        "console.log('architecture:', process.arch);"
+    };
+
+
+    int result =
+        node::Start(
+            3,
+            const_cast<char**>(argv)
+        );
+
+
+    /*
+     * This is Android-side output,
+     * not Node stdout.
+     */
+    char message[100];
+
+    snprintf(
+        message,
+        sizeof(message),
+        "\nNode exited: %d\n",
+        result
+    );
+
+    appendText(
+        env,
+        message
+    );
+
+    return result;
 }
