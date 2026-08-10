@@ -1,3 +1,38 @@
+process.env.NODE_PATH =
+    "/data/data/com.example.androidnode/files/node_modules";
+
+require("module").Module._initPaths();
+
+console.log("CWD:", process.cwd());
+console.log(
+    "NODE_PATH:",
+    process.env.NODE_PATH
+);
+
+try {
+
+    const isNumber =
+        require("is-number");
+
+    console.log(
+        "is-number loaded successfully"
+    );
+
+    console.log(
+        isNumber(123)
+    );
+
+} catch (e) {
+
+    console.error(
+        "MODULE ERROR:"
+    );
+
+    console.error(
+        e.stack || e.toString()
+    );
+}
+
 const readline = require("readline");
 
 console.log("Node.js terminal started");
