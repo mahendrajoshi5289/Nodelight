@@ -17,9 +17,6 @@ static int node_stdout_pipe[2];
 static pthread_t output_thread;
 
 
-/*
- * Send text to Android TextView
- */
 static void appendText(JNIEnv* env, const char* text)
 {
     jstring value =
@@ -35,9 +32,6 @@ static void appendText(JNIEnv* env, const char* text)
 }
 
 
-/*
- * Read Node stdout/stderr.
- */
 static void* outputReader(void*)
 {
     JNIEnv* env = nullptr;
@@ -75,9 +69,6 @@ static void* outputReader(void*)
 }
 
 
-/*
- * Start Node.js.
- */
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_androidnode_MainActivity_startNode(
@@ -104,6 +95,14 @@ Java_com_example_androidnode_MainActivity_startNode(
 
 
     /*
+     * Node application directory.
+     */
+    chdir(
+        "/data/data/com.example.androidnode/files"
+    );
+
+
+    /*
      * Android -> Node
      */
     if (pipe(node_stdin_pipe) != 0)
@@ -118,7 +117,7 @@ Java_com_example_androidnode_MainActivity_startNode(
 
 
     /*
-     * Connect Node's stdin.
+     * Connect stdin.
      */
     dup2(
         node_stdin_pipe[0],
@@ -127,7 +126,7 @@ Java_com_example_androidnode_MainActivity_startNode(
 
 
     /*
-     * Connect Node's stdout.
+     * Connect stdout.
      */
     dup2(
         node_stdout_pipe[1],
@@ -136,7 +135,7 @@ Java_com_example_androidnode_MainActivity_startNode(
 
 
     /*
-     * Connect Node's stderr.
+     * Connect stderr.
      */
     dup2(
         node_stdout_pipe[1],
@@ -156,29 +155,22 @@ Java_com_example_androidnode_MainActivity_startNode(
 
 
     /*
-     * Start Node with main.js.
+     * Start our Node program.
      */
     const char* argv[] =
-{
-    "node",
-    "/data/data/com.example.androidnode/files/node-project/main.js"
-};
-
-    chdir("/data/data/com.example.androidnode/files/node-project");
-    int result =
-        node::Start(
-            2,
-            const_cast<char**>(argv)
-        );
+    {
+        "node",
+        "/data/data/com.example.androidnode/files/main.js"
+    };
 
 
-    return result;
+    return node::Start(
+        2,
+        const_cast<char**>(argv)
+    );
 }
 
 
-/*
- * Send a command from Android to Node.
- */
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_androidnode_MainActivity_sendCommand(
@@ -186,10 +178,6 @@ Java_com_example_androidnode_MainActivity_sendCommand(
     jobject,
     jstring command)
 {
-    if (node_stdin_pipe[1] < 0)
-        return -20;
-
-
     const char* text =
         env->GetStringUTFChars(
             command,
