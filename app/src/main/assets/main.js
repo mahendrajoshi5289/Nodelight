@@ -1,12 +1,9 @@
-const axios = require("axios");
+const readline = require("readline");
 
 console.log("Android Node.js");
 console.log("Node:", process.version);
 console.log("Arch:", process.arch);
-console.log("Axios:", axios.VERSION);
 console.log("");
-
-const readline = require("readline");
 
 const rl = readline.createInterface({
     input: process.stdin,
