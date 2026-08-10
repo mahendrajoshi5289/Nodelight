@@ -34,96 +34,46 @@ public class MainActivity extends Activity {
     private native int sendCommand(String command);
 
 
-private void copyAssetDirectory(
-        String assetPath,
-        File destination
-) throws Exception {
+private void copyNodeScript() throws Exception {
 
-    if (!destination.exists()) {
-        destination.mkdirs();
+    File target =
+        new File(
+            getFilesDir(),
+            "main.js"
+        );
+
+    InputStream input =
+        getAssets().open("main.js");
+
+    FileOutputStream output =
+        new FileOutputStream(target);
+
+    byte[] buffer = new byte[8192];
+
+    int length;
+
+    while ((length = input.read(buffer)) != -1) {
+        output.write(buffer, 0, length);
     }
 
-    String[] files =
-            getAssets().list(assetPath);
+    input.close();
+    output.close();
 
-    if (files == null) {
-        return;
-    }
-
-    for (String file : files) {
-
-        String childAsset =
-                assetPath + "/" + file;
-
-        File child =
-                new File(
-                        destination,
-                        file
-                );
-
-        String[] children =
-                getAssets().list(childAsset);
-
-        if (children != null && children.length > 0) {
-
-            copyAssetDirectory(
-                    childAsset,
-                    child
-            );
-
-        } else {
-
-            InputStream input =
-                    getAssets().open(childAsset);
-
-            FileOutputStream output =
-                    new FileOutputStream(child);
-
-            byte[] buffer =
-                    new byte[8192];
-
-            int length;
-
-            while ((length =
-                    input.read(buffer)) != -1) {
-
-                output.write(
-                        buffer,
-                        0,
-                        length
-                );
-            }
-
-            input.close();
-            output.close();
-        }
-    }
+    target.setReadable(true, false);
 }
 
     
-private void copyNodeProject() throws Exception {
 
-    File targetDir =
-            new File(
-                    getFilesDir(),
-                    "node-project"
-            );
-
-    copyAssetDirectory(
-            "node-project",
-            targetDir
-    );
-}
 
     
-    @Override
+@Override
 protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
     createTerminalUI();
 
     try {
-        copyNodeProject();
+        copyNodeScript();
     } catch (Exception e) {
         appendTerminal(
             "\nFailed to copy main.js:\n" +
@@ -132,7 +82,7 @@ protected void onCreate(Bundle savedInstanceState) {
         );
 
         return;
-    }
+    }(
 
     if (!nodeStarted) {
 
