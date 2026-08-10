@@ -1,8 +1,8 @@
 const readline = require("readline");
 
-console.log("Android Node.js");
-console.log("Node:", process.version);
-console.log("Arch:", process.arch);
+console.log("Node.js terminal started");
+console.log("Version:", process.version);
+console.log("Architecture:", process.arch);
 console.log("");
 
 const rl = readline.createInterface({
@@ -26,7 +26,7 @@ function execute(command) {
             console.log(result);
         }
     } catch (error) {
-        console.error(error.stack || error.toString());
+        console.error(error.toString());
     }
 
     process.stdout.write("> ");
