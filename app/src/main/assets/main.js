@@ -1,22 +1,10 @@
+const isNumber = require("is-number");
+
+console.log("Node:", process.version);
+console.log("Arch:", process.arch);
+console.log("is-number:", isNumber(123));
 
 const readline = require("readline");
-
-
-try {
-    const isNumber = require("is-number");
-
-    console.log("is-number loaded successfully");
-    console.log(isNumber(123));
-} catch (e) {
-    console.error("MODULE ERROR:");
-    console.error(e.stack || e.toString());
-}
-
-
-console.log("Node.js terminal started");
-console.log("Version:", process.version);
-console.log("Architecture:", process.arch);
-console.log("");
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -39,7 +27,7 @@ function execute(command) {
             console.log(result);
         }
     } catch (error) {
-        console.error(error.toString());
+        console.error(error.stack || error.toString());
     }
 
     process.stdout.write("> ");
