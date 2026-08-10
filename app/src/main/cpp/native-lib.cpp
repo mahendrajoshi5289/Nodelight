@@ -161,7 +161,7 @@ Java_com_example_androidnode_MainActivity_startNode(
     const char* argv[] =
     {
         "node",
-        "/data/data/com.example.androidnode/files/main.js"
+        "/data/data/com.example.androidnode/files/bundle.js"
     };
 
     chdir("/data/data/com.example.androidnode/files");
