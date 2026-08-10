@@ -68,6 +68,81 @@ private void copyNodeScript() throws Exception {
 }
 
 
+    private void copyAssetDirectory(
+        String assetPath,
+        File destination
+) throws Exception {
+
+    if (!destination.exists()) {
+        destination.mkdirs();
+    }
+
+    String[] files =
+        getAssets().list(assetPath);
+
+    if (files == null) {
+        return;
+    }
+
+    for (String file : files) {
+
+        String childAsset =
+            assetPath + "/" + file;
+
+        File child =
+            new File(
+                destination,
+                file
+            );
+
+        String[] children =
+            getAssets().list(childAsset);
+
+        if (children != null && children.length > 0) {
+
+            copyAssetDirectory(
+                childAsset,
+                child
+            );
+
+        } else {
+
+            InputStream input =
+                getAssets().open(childAsset);
+
+            FileOutputStream output =
+                new FileOutputStream(child);
+
+            byte[] buffer =
+                new byte[8192];
+
+            int length;
+
+            while ((length =
+                    input.read(buffer)) != -1) {
+
+                output.write(
+                    buffer,
+                    0,
+                    length
+                );
+            }
+
+            input.close();
+            output.close();
+        }
+    }
+}
+private void copyNodeModules() throws Exception {
+
+    copyAssetDirectory(
+        "node_modules",
+        new File(
+            getFilesDir(),
+            "node_modules"
+        )
+    );
+}
     
     @Override
 protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +152,7 @@ protected void onCreate(Bundle savedInstanceState) {
 
     try {
         copyNodeScript();
+copyNodeModules();
     } catch (Exception e) {
         appendTerminal(
             "\nFailed to copy main.js:\n" +
