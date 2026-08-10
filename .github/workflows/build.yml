@@ -42,7 +42,25 @@ jobs:
           cp -R nodejs-mobile/bin app/libnode/
 
 
+      - name: Set up Node.js for bundling
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
+      - name: Install dependencies
+        run: npm install --prefix app/src/main/assets
+
+      - name: Install esbuild
+        run: npm install --no-save esbuild
+
+      - name: Bundle Node application
+        run: |
+          npx esbuild \
+            app/src/main/assets/main.js \
+            --bundle \
+            --platform=node \
+            --format=cjs \
+            --outfile=app/src/main/assets/bundle.js
   
 
       - name: Build APK
