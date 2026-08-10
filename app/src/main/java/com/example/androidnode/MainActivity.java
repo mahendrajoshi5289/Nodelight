@@ -53,7 +53,12 @@ private void copyNodeScript() throws Exception {
     int length;
 
     while ((length = input.read(buffer)) != -1) {
-        output.write(buffer, 0, length);
+
+        output.write(
+            buffer,
+            0,
+            length
+        );
     }
 
     input.close();
@@ -62,11 +67,9 @@ private void copyNodeScript() throws Exception {
     target.setReadable(true, false);
 }
 
-    
-
 
     
-@Override
+    @Override
 protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
@@ -82,7 +85,7 @@ protected void onCreate(Bundle savedInstanceState) {
         );
 
         return;
-    }(
+    }
 
     if (!nodeStarted) {
 
