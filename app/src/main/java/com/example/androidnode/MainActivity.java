@@ -39,11 +39,11 @@ private void copyNodeScript() throws Exception {
     File target =
         new File(
             getFilesDir(),
-            "main.js"
+            "bundle.js"
         );
 
     InputStream input =
-        getAssets().open("main.js");
+        getAssets().open("bundle.js");
 
     FileOutputStream output =
         new FileOutputStream(target);
