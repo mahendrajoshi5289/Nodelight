@@ -1,4 +1,12 @@
+const isNumber = require("is-number");
 const readline = require("readline");
+
+
+console.log("External package test:");
+console.log("is-number(123):", isNumber(123));
+console.log("is-number('123'):", isNumber("123"));
+console.log("");
+
 
 console.log("Node.js terminal started");
 console.log("Version:", process.version);
