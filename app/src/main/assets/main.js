@@ -2,7 +2,15 @@
 const readline = require("readline");
 
 
+try {
+    const isNumber = require("is-number");
 
+    console.log("is-number loaded successfully");
+    console.log(isNumber(123));
+} catch (e) {
+    console.error("MODULE ERROR:");
+    console.error(e.stack || e.toString());
+}
 
 
 console.log("Node.js terminal started");
