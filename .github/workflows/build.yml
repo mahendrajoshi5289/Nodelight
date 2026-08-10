@@ -43,14 +43,7 @@ jobs:
 
 
 
-      - name: Install Node.js for npm
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install npm packages
-        working-directory: app/src/main/assets/node-project
-        run: npm install
+  
 
       - name: Build APK
         run: |
